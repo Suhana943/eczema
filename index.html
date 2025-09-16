@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Retinopathy Explorer — Demo</title>
+  <meta name="description" content="Simple frontend for retinopathy image preview & demo predictions" />
+
+  <!-- Simple modern styles (no external frameworks) -->
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --accent:#4f46e5;
+      --muted:#94a3b8;
+      --glass: rgba(255,255,255,0.03);
+      --radius:12px;
+      --max-width:960px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, Roboto, system-ui, -apple-system, "Segoe UI", Arial;
+      background: linear-gradient(180deg, #071029 0%, #07172a 60%);
+      color:#e6eef8;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding:28px;
+    }
+
+    .container{
+      width:100%;
+      max-width:var(--max-width);
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      border-radius:16px;
+      padding:22px;
+      box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+
+    header{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      margin-bottom:18px;
+    }
+    .logo{
+      width:56px;
+      height:56px;
+      border-radius:10px;
+      background: linear-gradient(135deg, rgba(79,70,229,0.18), rgba(79,70,229,0.06));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      color:var(--accent);
+      font-family:var(--mono);
+      font-size:18px;
+      border:1px solid rgba(79,70,229,0.12);
+    }
+    h1{font-size:20px;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    .layout{
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:18px;
+      margin-top:18px;
+    }
+
+    /* Left card (main) */
+    .card{
+      background:var(--card);
+      padding:16px;
+      border-radius:var(--radius);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+
+    .uploader{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .drop{
+      border:2px dashed rgba(255,255,255,0.04);
+      border-radius:12px;
+      padding:18px;
+      min-height:220px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      background:var(--glass);
+      cursor:pointer;
+      transition:transform .12s ease, border-color .12s ease;
+    }
+    .drop.hover{transform:translateY(-3px); border-color: rgba(79,70,229,0.35)}
+
+    .drop input[type=file]{display:none}
+
+    .preview{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+    }
+    img#retinaPreview{
+      max-width:100%;
+      max-height:260px;
+      border-radius:10px;
+      box-shadow: 0 6px 24px rgba(2,6,23,0.7);
+      border:1px solid rgba(255,255,255,0.02);
+      object-fit:contain;
+      background:linear-gradient(180deg,#071029,#091426);
+      padding:6px;
+    }
+
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    button.btn{
+      background:var(--accent);
+      color:white;
+      border:0;
+      padding:10px 14px;
+      border-radius:9px;
+      cursor:pointer;
+      font-weight:600;
+      box-shadow: 0 6px 18px rgba(79,70,229,0.12);
+    }
+    button.ghost{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.04);
+      color:var(--muted);
+      font-weight:600;
+      padding:10px 12px;
+      border-radius:9px;
+      cursor:pointer;
+    }
+
+    /* Right column (info) */
+    .meta{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .meta .small{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.4;
+    }
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    a.dataset{
+      display:block;
+      padding:10px 12px;
+      border-radius:10px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+      text-decoration:none;
+      color:#dfe9ff;
+      border:1px solid rgba(255,255,255,0.02);
+      font-size:13px;
+    }
+    .badge{
+      display:inline-block;
+      padding:4px 8px;
+      font-size:12px;
+      border-radius:999px;
+      background:rgba(255,255,255,0.03);
+      color:var(--muted);
+      border:1px solid rgba(255,255,255,0.02);
+    }
+
+    .result{
+      margin-top:10px;
+      padding:12px;
+      border-radius:10px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+      border:1px solid rgba(255,255,255,0.02);
+      min-height:68px;
+    }
+
+    footer{
+      margin-top:16px;
+      color:var(--muted);
+      font-size:13px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+    }
+
+    /* small screens */
+    @media (max-width:880px){
+      .layout{grid-template-columns:1fr; }
+      .logo{width:48px;height:48px}
+      img#retinaPreview{max-height:200px}
+    }
+  </style>
+</head>
+<body>
+  <div class="container" role="main" aria-labelledby="title">
+    <header>
+      <div class="logo" aria-hidden="true">RTN</div>
+      <div>
+        <h1 id="title">Retinopathy Explorer</h1>
+        <p class="lead">Upload a retinal (fundus) photo to preview and run a demo prediction. For research use only.</p>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- LEFT: uploader / preview / actions -->
+      <section class="card" aria-label="Image uploader and preview">
+        <div class="uploader">
+          <label class="drop" id="dropZone" tabindex="0">
+            <input id="fileInput" type="file" accept="image/*" aria-label="Upload retinal image" />
+            <div class="preview">
+              <div id="placeholderText">
+                <strong>Drop an image here</strong>
+                <div style="height:8px"></div>
+                <div class="small" style="color:var(--muted)">or click to choose a fundus photo (jpg / png). Ideal size: 512–2048px.</div>
+              </div>
+              <img id="retinaPreview" alt="Retinal preview" style="display:none" />
+            </div>
+          </label>
+
+          <div class="controls" role="group" aria-label="Actions">
+            <button class="btn" id="predictBtn" title="Run demo prediction">Predict (demo)</button>
+            <button class="ghost" id="clearBtn" title="Clear image">Clear</button>
+            <button class="ghost" id="downloadBtn" title="Download preview">Download</button>
+          </div>
+
+          <div class="result" id="resultArea" aria-live="polite">
+            <div style="font-weight:700">No prediction yet</div>
+            <div class="small" id="resultDetails">Upload an image and press <span class="badge">Predict</span>.</div>
+          </div>
+
+          <details style="margin-top:10px;color:var(--muted)" open>
+            <summary style="cursor:pointer">How it works</summary>
+            <p class="small" style="margin-top:8px">
+              This demo previews uploaded retinal images in the browser. The Predict button simulates a model output — replace the `fetch('/api/predict', ...)` stub in the script with your real server endpoint to perform actual inference (example included in comments below).
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <!-- RIGHT: dataset links / tips -->
+      <aside class="meta">
+        <div class="card" style="padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:700">Datasets & resources</div>
+              <div class="small">Useful public datasets for diabetic retinopathy research</div>
+            </div>
+            <div class="badge">For research</div>
+          </div>
+
+          <div style="height:10px"></div>
+          <div class="list" aria-label="Dataset links">
+            <a class="dataset" href="https://www.kaggle.com/competitions/aptos2019-blindness-detection" target="_blank" rel="noopener">APTOS 2019 — Blindness Detection (Kaggle)</a>
+            <a class="dataset" href="https://www.kaggle.com/c/diabetic-retinopathy-detection" target="_blank" rel="noopener">EyePACS / Diabetic Retinopathy Detection (Kaggle)</a>
+            <a class="dataset" href="http://www.adcis.net/en/third-party/messidor/" target="_blank" rel="noopener">MESSIDOR (retinal images)</a>
+            <a class="dataset" href="https://paperswithcode.com/dataset/ddr" target="_blank" rel="noopener">DDR — Diabetic Retinopathy Database (paperswithcode)</a>
+          </div>
+        </div>
+
+        <div class="card" style="padding:12px">
+          <div style="font-weight:700">Quick tips</div>
+          <ul class="small" style="margin:8px 0 0 18px;line-height:1.5;color:var(--muted)">
+            <li>Cropping to the circular fundus region improves model performance.</li>
+            <li>Normalize brightness & contrast; many datasets vary across devices.</li>
+            <li>Use augmentation (rotation, flip, color jitter) when training.</li>
+            <li>For clinical deployment, validate on local device data and follow regulations.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="padding:12px">
+          <div style="font-weight:700">Notes</div>
+          <div class="small" style="margin-top:6px">
+            This front-end is for prototyping and education only. Predictions from any model should not be used for diagnosis. Replace the demo stub with a secure server endpoint that calls your model.
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <footer>
+      <div>Made with ♥ • Retinopathy Explorer</div>
+      <div class="small">Version 1.0 — Demo</div>
+    </footer>
+  </div>
+
+  <!-- Script: image preview, drag & drop, fake prediction + API stub comments -->
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('retinaPreview');
+    const placeholderText = document.getElementById('placeholderText');
+    const predictBtn = document.getElementById('predictBtn');
+    const resultArea = document.getElementById('resultArea');
+    const resultDetails = document.getElementById('resultDetails');
+    const clearBtn = document.getElementById('clearBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let currentFile = null;
+
+    // click anywhere on drop to open file picker
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', ev => {
+      const f = ev.target.files[0];
+      if (f) loadImageFile(f);
+    });
+
+    // drag & drop
+    ;['dragenter','dragover'].forEach(e => {
+      dropZone.addEventListener(e, ev => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        dropZone.classList.add('hover');
+      });
+    });
+    ;['dragleave','drop'].forEach(e => {
+      dropZone.addEventListener(e, ev => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        dropZone.classList.remove('hover');
+      });
+    });
+    dropZone.addEventListener('drop', ev => {
+      const f = ev.dataTransfer.files[0];
+      if (f) loadImageFile(f);
+    });
+
+    // keyboard accessibility (enter)
+    dropZone.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' || ev.key === ' ') fileInput.click();
+    });
+
+    function loadImageFile(file){
+      if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file (jpg, png).');
+        return;
+      }
+      currentFile = file;
+      const reader = new FileReader();
+      reader.onload = e => {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        placeholderText.style.display = 'none';
+        resultArea.querySelector('div').textContent = "Image loaded — ready to predict";
+        resultDetails.textContent = "Click Predict to run a demo inference (no model yet).";
+      };
+      reader.readAsDataURL(file);
+    }
+
+    clearBtn.addEventListener('click', () => {
+      fileInput.value = "";
+      preview.src = "";
+      preview.style.display = 'none';
+      placeholderText.style.display = 'block';
+      currentFile = null;
+      resultArea.querySelector('div').textContent = "No prediction yet";
+      resultDetails.textContent = "Upload an image and press Predict.";
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (!currentFile) { alert('No image to download'); return; }
+      // download the preview as the original filename
+      const a = document.createElement('a');
+      a.href = preview.src;
+      a.download = currentFile.name || 'retina-image.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+
+    // Fake prediction for demo. Replace this with a real API call.
+    predictBtn.addEventListener('click', async () => {
+      if (!currentFile) {
+        alert('Please upload a retinal image first.');
+        return;
+      }
+
+      // Visual: show loading state
+      predictBtn.disabled = true;
+      predictBtn.textContent = 'Predicting...';
+      resultArea.querySelector('div').textContent = "Running demo model…";
+      resultDetails.textContent = "This is a simulated prediction. Replace with your model endpoint.";
+
+      // Simulate latency and produce a fake result
+      await new Promise(r => setTimeout(r, 900));
+
+      // Demo pseudo-inference logic (randomized). Replace with real model output.
+      const classes = [
+        {label:'No DR / Normal', confidence: 0.65},
+        {label:'Mild NPDR', confidence: 0.15},
+        {label:'Moderate NPDR', confidence: 0.10},
+        {label:'Severe NPDR', confidence: 0.06},
+        {label:'Proliferative DR', confidence: 0.04}
+      ];
+      // randomize a bit
+      classes.forEach(c => c.confidence = Math.max(0.01, c.confidence + (Math.random()-0.5)*0.08));
+      classes.sort((a,b) => b.confidence - a.confidence);
+
+      const top = classes[0];
+      resultArea.querySelector('div').textContent = top.label;
+      resultDetails.innerHTML = `
+        <strong>Confidence:</strong> ${(top.confidence*100).toFixed(1)}%<br/>
+        <strong>Model note:</strong> Demo output only — replace with a validated model endpoint before clinical use.
+      `;
+
+      predictBtn.disabled = false;
+      predictBtn.textContent = 'Predict (demo)';
+
+      // Example: how you'd call a real server:
+      /*
+        // prepare form data
+        const fd = new FormData();
+        fd.append('image', currentFile);
+
+        // call your backend /api/predict (POST) and expect JSON like { label: "No DR", confidence:0.92 }
+        try {
+          const resp = await fetch('/api/predict', {
+            method: 'POST',
+            body: fd
+          });
+          const data = await resp.json();
+          // update UI with real data
+          resultArea.querySelector('div').textContent = data.label;
+          resultDetails.textContent = 'Confidence: ' + (data.confidence*100).toFixed(1) + '%';
+        } catch (err) {
+          resultArea.querySelector('div').textContent = 'Prediction error';
+          resultDetails.textContent = String(err);
+        }
+      */
+    });
+
+    // small helper: if user pastes an image URL into clipboard (optional)
+    window.addEventListener('paste', (ev) => {
+      const items = ev.clipboardData && ev.clipboardData.items;
+      if (!items) return;
+      for (let i=0;i<items.length;i++){
+        const it = items[i];
+        if (it.type && it.type.startsWith('image/')) {
+          const blob = it.getAsFile();
+          if (blob) loadImageFile(blob);
+        }
+      }
+    });
+
+  </script>
+</body>
+</html>
